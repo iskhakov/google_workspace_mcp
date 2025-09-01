@@ -119,6 +119,7 @@ def main():
         "USER_GOOGLE_EMAIL": os.getenv('USER_GOOGLE_EMAIL', 'Not Set'),
         "MCP_SINGLE_USER_MODE": os.getenv('MCP_SINGLE_USER_MODE', 'false'),
         "MCP_ENABLE_OAUTH21": os.getenv('MCP_ENABLE_OAUTH21', 'false'),
+        "MCP_TOKEN_ONLY_MODE": os.getenv('MCP_TOKEN_ONLY_MODE', 'false'),
         "WORKSPACE_MCP_STATELESS_MODE": os.getenv('WORKSPACE_MCP_STATELESS_MODE', 'false'),
         "OAUTHLIB_INSECURE_TRANSPORT": os.getenv('OAUTHLIB_INSECURE_TRANSPORT', 'false'),
         "GOOGLE_CLIENT_SECRET_PATH": os.getenv('GOOGLE_CLIENT_SECRET_PATH', 'Not Set'),
@@ -126,6 +127,17 @@ def main():
 
     for key, value in config_vars.items():
         safe_print(f"   - {key}: {value}")
+    safe_print("")
+    
+    # Show auth mode
+    from auth.oauth_config import is_token_only_mode
+    if os.getenv('MCP_ENABLE_OAUTH21', 'false').lower() == 'true':
+        if is_token_only_mode():
+            safe_print("   🔑 Auth Mode: Token-only (External IDP)")
+        else:
+            safe_print("   🔑 Auth Mode: Full OAuth 2.1")
+    else:
+        safe_print("   🔑 Auth Mode: OAuth 2.0 (Legacy)")
     safe_print("")
 
 

@@ -88,6 +88,16 @@ else:
 set_transport_mode('streamable-http')
 configure_server_for_http()
 
+# Show auth mode
+from auth.oauth_config import is_token_only_mode
+if os.getenv('MCP_ENABLE_OAUTH21', 'false').lower() == 'true':
+    if is_token_only_mode():
+        print("🔑 Auth Mode: Token-only (External IDP)", file=sys.stderr)
+    else:
+        print("🔑 Auth Mode: Full OAuth 2.1", file=sys.stderr)
+else:
+    print("🔑 Auth Mode: OAuth 2.0 (Legacy)", file=sys.stderr)
+
 # Import all tool modules to register their @server.tool() decorators
 import gmail.gmail_tools
 import gdrive.drive_tools

@@ -80,7 +80,7 @@ def configure_server_for_http():
         return
 
     # Use centralized OAuth configuration
-    from auth.oauth_config import get_oauth_config
+    from auth.oauth_config import get_oauth_config, is_token_only_mode
     config = get_oauth_config()
 
     # Check if OAuth 2.1 is enabled via centralized config
@@ -91,6 +91,25 @@ def configure_server_for_http():
             logger.warning("⚠️  OAuth 2.1 enabled but OAuth credentials not configured")
             return
 
+        # Check if token-only mode is enabled (for external IDP brokers)
+        if is_token_only_mode():
+            # Use simple token verifier for external IDP brokers
+            logger.info("🔐 Token-only mode: External IDP broker authentication")
+            try:
+                from auth.google_access_token_verifier import GoogleAccessTokenVerifier
+                _auth_provider = GoogleAccessTokenVerifier(
+                    client_id=config.client_id,
+                    resource_server_url=config.get_oauth_base_url()
+                )
+                server.auth = _auth_provider
+                set_auth_provider(_auth_provider)
+                logger.debug("Token-only authentication enabled")
+            except Exception as e:
+                logger.error(f"Failed to initialize GoogleAccessTokenVerifier: {e}", exc_info=True)
+                raise
+            return  # Early return for token-only mode
+        
+        # Standard OAuth 2.1 flow with full OAuth provider
         if not GOOGLE_REMOTE_AUTH_AVAILABLE:
             logger.error("CRITICAL: OAuth 2.1 enabled but FastMCP 2.11.1+ is not properly installed.")
             logger.error("Please run: uv sync --frozen")
