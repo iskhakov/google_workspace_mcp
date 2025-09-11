@@ -258,6 +258,17 @@ def _extract_oauth21_user_email(authenticated_user: Optional[str], func_name: st
         Exception: If no authenticated user found in OAuth 2.1 mode
     """
     if not authenticated_user:
+        # In stdio mode with token-only mode, use TEST_USER_EMAIL as fallback
+        from core.config import get_transport_mode
+        from auth.oauth_config import is_token_only_mode
+        import os
+        
+        transport_mode = get_transport_mode()
+        if transport_mode == "stdio" and is_token_only_mode():
+            test_email = os.getenv("TEST_USER_EMAIL", "ildar@archestra.ai")
+            logger.info(f"[{func_name}] Stdio + token-only mode: Using TEST_USER_EMAIL: {test_email}")
+            return test_email
+        
         raise Exception(
             f"OAuth 2.1 mode requires an authenticated user for {func_name}, but none was found."
         )
