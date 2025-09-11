@@ -44,6 +44,11 @@ class OAuthConfig:
         if self.stateless_mode and not self.oauth21_enabled:
             raise ValueError("WORKSPACE_MCP_STATELESS_MODE requires MCP_ENABLE_OAUTH21=true")
 
+        # Token-only mode configuration (for external IDP brokers)
+        self.token_only_mode = os.getenv("MCP_TOKEN_ONLY_MODE", "false").lower() == "true"
+        if self.token_only_mode and not self.oauth21_enabled:
+            raise ValueError("MCP_TOKEN_ONLY_MODE requires MCP_ENABLE_OAUTH21=true")
+
         # Transport mode (will be set at runtime)
         self._transport_mode = "stdio"  # Default
 
@@ -158,6 +163,7 @@ class OAuthConfig:
             "redirect_uri": self.redirect_uri,
             "client_configured": bool(self.client_id),
             "oauth21_enabled": self.oauth21_enabled,
+            "token_only_mode": self.token_only_mode,
             "pkce_required": self.pkce_required,
             "transport_mode": self._transport_mode,
             "total_redirect_uris": len(self.get_redirect_uris()),
@@ -190,6 +196,18 @@ class OAuthConfig:
             True if OAuth 2.1 is enabled
         """
         return self.oauth21_enabled
+    
+    def is_token_only_mode(self) -> bool:
+        """
+        Check if token-only mode is enabled.
+        
+        Token-only mode uses external IDP brokers for authentication
+        and only validates tokens without handling OAuth flows.
+
+        Returns:
+            True if token-only mode is enabled
+        """
+        return self.token_only_mode
 
     def detect_oauth_version(self, request_params: Dict[str, Any]) -> str:
         """
@@ -350,3 +368,8 @@ def get_oauth_redirect_uri() -> str:
 def is_stateless_mode() -> bool:
     """Check if stateless mode is enabled."""
     return get_oauth_config().stateless_mode
+
+
+def is_token_only_mode() -> bool:
+    """Check if token-only mode is enabled."""
+    return get_oauth_config().is_token_only_mode()

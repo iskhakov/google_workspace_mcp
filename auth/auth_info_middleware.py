@@ -96,6 +96,7 @@ class AuthInfoMiddleware(Middleware):
                                     context.fastmcp_context.set_state("authenticated_via", "bearer_token")
                                     
                                     logger.info(f"Authenticated via Google OAuth: {user_email}")
+                                    logger.info(f"Context state set - authenticated_user_email: {user_email}")
                                 else:
                                     logger.error("Failed to verify Google OAuth token")
                                 # Don't set authenticated_user_email if verification failed

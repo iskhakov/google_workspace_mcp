@@ -53,8 +53,16 @@ def _get_auth_context(
     """
     try:
         ctx = get_context()
+        logger.info(f"[{tool_name}] Got context: {ctx}")
         if not ctx:
+            logger.warning(f"[{tool_name}] No context available from get_context()")
             return None, None, None
+
+        # Log all available states for debugging
+        try:
+            logger.info(f"[{tool_name}] Context has session_id: {getattr(ctx, 'session_id', 'NO SESSION ID')}")
+        except:
+            pass
 
         authenticated_user = ctx.get_state("authenticated_user_email")
         auth_method = ctx.get_state("authenticated_via")
@@ -63,8 +71,8 @@ def _get_auth_context(
         if mcp_session_id:
             set_fastmcp_session_id(mcp_session_id)
 
-        logger.debug(
-            f"[{tool_name}] Auth from middleware: {authenticated_user} via {auth_method}"
+        logger.info(
+            f"[{tool_name}] Auth from middleware: authenticated_user={authenticated_user}, auth_method={auth_method}, session={mcp_session_id}"
         )
         return authenticated_user, auth_method, mcp_session_id
 
