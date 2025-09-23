@@ -262,12 +262,12 @@ def _extract_oauth21_user_email(authenticated_user: Optional[str], func_name: st
         from core.config import get_transport_mode
         from auth.oauth_config import is_token_only_mode
         import os
-        
+
         transport_mode = get_transport_mode()
         if transport_mode == "stdio" and is_token_only_mode():
             test_email = os.getenv("TEST_USER_EMAIL", "ildar@archestra.ai")
             access_token = os.getenv("GOOGLE_ACCESS_TOKEN")
-            
+
             # If we have an access token, validate it and get the real email
             if access_token:
                 logger.info(f"[{func_name}] Stdio + token-only mode: Validating GOOGLE_ACCESS_TOKEN")
@@ -275,7 +275,7 @@ def _extract_oauth21_user_email(authenticated_user: Optional[str], func_name: st
                     # Validate the token and get user info from Google
                     import aiohttp
                     import asyncio
-                    
+
                     async def validate_token():
                         async with aiohttp.ClientSession() as session:
                             # Use Google's tokeninfo endpoint to validate the token
@@ -288,7 +288,7 @@ def _extract_oauth21_user_email(authenticated_user: Optional[str], func_name: st
                                 else:
                                     logger.error(f"Token validation failed with status {response.status}")
                                     return None
-                    
+
                     # Run the async validation
                     loop = None
                     try:
@@ -296,7 +296,7 @@ def _extract_oauth21_user_email(authenticated_user: Optional[str], func_name: st
                     except RuntimeError:
                         loop = asyncio.new_event_loop()
                         asyncio.set_event_loop(loop)
-                    
+
                     if loop.is_running():
                         # If we're already in an async context, we need to handle this differently
                         import concurrent.futures
@@ -305,44 +305,96 @@ def _extract_oauth21_user_email(authenticated_user: Optional[str], func_name: st
                             token_info = future.result(timeout=10)
                     else:
                         token_info = loop.run_until_complete(validate_token())
-                    
+
                     if token_info:
                         # Extract the actual email from the token
                         actual_email = token_info.get("email")
                         token_scopes = token_info.get("scope", "").split()
                         expires_in = token_info.get("expires_in", 3600)
-                        
+
                         if actual_email:
                             logger.info(f"[{func_name}] Token validated! Actual email: {actual_email}")
-                            
+
                             # Check if the actual email matches TEST_USER_EMAIL (if strict mode wanted)
                             if test_email != "ildar@archestra.ai" and actual_email != test_email:
                                 logger.warning(f"[{func_name}] Token email ({actual_email}) doesn't match TEST_USER_EMAIL ({test_email}). Using token email.")
-                            
+
                             # Use the actual email from the token
                             verified_email = actual_email
                         else:
                             logger.warning(f"[{func_name}] No email found in token info, using TEST_USER_EMAIL")
                             verified_email = test_email
                             token_scopes = [
-                                "https://www.googleapis.com/auth/gmail.readonly",
+                                "openid",
+                                "email",
+                                "profile",
+                                "https://www.googleapis.com/auth/calendar",
+                                "https://www.googleapis.com/auth/calendar.readonly",
+                                "https://www.googleapis.com/auth/calendar.events",
+                                "https://www.googleapis.com/auth/drive",
                                 "https://www.googleapis.com/auth/drive.readonly",
-                                "https://www.googleapis.com/auth/calendar.readonly"
+                                "https://www.googleapis.com/auth/drive.file",
+                                "https://www.googleapis.com/auth/documents.readonly",
+                                "https://www.googleapis.com/auth/documents",
+                                "https://www.googleapis.com/auth/gmail.readonly",
+                                "https://www.googleapis.com/auth/gmail.send",
+                                "https://www.googleapis.com/auth/gmail.compose",
+                                "https://www.googleapis.com/auth/gmail.modify",
+                                "https://www.googleapis.com/auth/gmail.labels",
+                                "https://www.googleapis.com/auth/chat.messages.readonly",
+                                "https://www.googleapis.com/auth/chat.messages",
+                                "https://www.googleapis.com/auth/chat.spaces",
+                                "https://www.googleapis.com/auth/spreadsheets.readonly",
+                                "https://www.googleapis.com/auth/spreadsheets",
+                                "https://www.googleapis.com/auth/forms.body",
+                                "https://www.googleapis.com/auth/forms.body.readonly",
+                                "https://www.googleapis.com/auth/forms.responses.readonly",
+                                "https://www.googleapis.com/auth/presentations",
+                                "https://www.googleapis.com/auth/presentations.readonly",
+                                "https://www.googleapis.com/auth/tasks",
+                                "https://www.googleapis.com/auth/tasks.readonly",
+                                "https://www.googleapis.com/auth/cse"
                             ]
                     else:
                         logger.error(f"[{func_name}] Token validation failed, using TEST_USER_EMAIL")
                         verified_email = test_email
                         token_scopes = [
+                            "openid",
+                            "email",
+                            "profile",
+                            "https://www.googleapis.com/auth/calendar",
+                            "https://www.googleapis.com/auth/calendar.readonly",
+                            "https://www.googleapis.com/auth/calendar.events",
+                            "https://www.googleapis.com/auth/drive",
+                            "https://www.googleapis.com/auth/drive.readonly",
+                            "https://www.googleapis.com/auth/drive.file",
+                            "https://www.googleapis.com/auth/documents.readonly",
+                            "https://www.googleapis.com/auth/documents",
                             "https://www.googleapis.com/auth/gmail.readonly",
-                            "https://www.googleapis.com/auth/drive.readonly", 
-                            "https://www.googleapis.com/auth/calendar.readonly"
+                            "https://www.googleapis.com/auth/gmail.send",
+                            "https://www.googleapis.com/auth/gmail.compose",
+                            "https://www.googleapis.com/auth/gmail.modify",
+                            "https://www.googleapis.com/auth/gmail.labels",
+                            "https://www.googleapis.com/auth/chat.messages.readonly",
+                            "https://www.googleapis.com/auth/chat.messages",
+                            "https://www.googleapis.com/auth/chat.spaces",
+                            "https://www.googleapis.com/auth/spreadsheets.readonly",
+                            "https://www.googleapis.com/auth/spreadsheets",
+                            "https://www.googleapis.com/auth/forms.body",
+                            "https://www.googleapis.com/auth/forms.body.readonly",
+                            "https://www.googleapis.com/auth/forms.responses.readonly",
+                            "https://www.googleapis.com/auth/presentations",
+                            "https://www.googleapis.com/auth/presentations.readonly",
+                            "https://www.googleapis.com/auth/tasks",
+                            "https://www.googleapis.com/auth/tasks.readonly",
+                            "https://www.googleapis.com/auth/cse"
                         ]
                         expires_in = 3600
-                    
+
                     # Store the validated token in session store
                     from auth.oauth21_session_store import get_oauth21_session_store
                     from datetime import datetime, timedelta
-                    
+
                     store = get_oauth21_session_store()
                     store.store_session(
                         user_email=verified_email,
@@ -353,24 +405,50 @@ def _extract_oauth21_user_email(authenticated_user: Optional[str], func_name: st
                         expiry=datetime.utcnow() + timedelta(seconds=int(expires_in))
                     )
                     logger.info(f"[{func_name}] Stored validated token for {verified_email}")
-                    
+
                     # Return the verified email
                     return verified_email
-                    
+
                 except Exception as e:
                     logger.warning(f"[{func_name}] Token validation failed: {e}. Using TEST_USER_EMAIL fallback.")
                     # Fall back to storing with test email
                     from auth.oauth21_session_store import get_oauth21_session_store
                     from datetime import datetime, timedelta
-                    
+
                     store = get_oauth21_session_store()
                     store.store_session(
                         user_email=test_email,
                         access_token=access_token,
                         scopes=[
-                            "https://www.googleapis.com/auth/gmail.readonly",
+                            "openid",
+                            "email",
+                            "profile",
+                            "https://www.googleapis.com/auth/calendar",
+                            "https://www.googleapis.com/auth/calendar.readonly",
+                            "https://www.googleapis.com/auth/calendar.events",
+                            "https://www.googleapis.com/auth/drive",
                             "https://www.googleapis.com/auth/drive.readonly",
-                            "https://www.googleapis.com/auth/calendar.readonly"
+                            "https://www.googleapis.com/auth/drive.file",
+                            "https://www.googleapis.com/auth/documents.readonly",
+                            "https://www.googleapis.com/auth/documents",
+                            "https://www.googleapis.com/auth/gmail.readonly",
+                            "https://www.googleapis.com/auth/gmail.send",
+                            "https://www.googleapis.com/auth/gmail.compose",
+                            "https://www.googleapis.com/auth/gmail.modify",
+                            "https://www.googleapis.com/auth/gmail.labels",
+                            "https://www.googleapis.com/auth/chat.messages.readonly",
+                            "https://www.googleapis.com/auth/chat.messages",
+                            "https://www.googleapis.com/auth/chat.spaces",
+                            "https://www.googleapis.com/auth/spreadsheets.readonly",
+                            "https://www.googleapis.com/auth/spreadsheets",
+                            "https://www.googleapis.com/auth/forms.body",
+                            "https://www.googleapis.com/auth/forms.body.readonly",
+                            "https://www.googleapis.com/auth/forms.responses.readonly",
+                            "https://www.googleapis.com/auth/presentations",
+                            "https://www.googleapis.com/auth/presentations.readonly",
+                            "https://www.googleapis.com/auth/tasks",
+                            "https://www.googleapis.com/auth/tasks.readonly",
+                            "https://www.googleapis.com/auth/cse"
                         ],
                         session_id=f"stdio_{test_email}",
                         issuer="https://accounts.google.com",
@@ -379,9 +457,9 @@ def _extract_oauth21_user_email(authenticated_user: Optional[str], func_name: st
                     logger.info(f"[{func_name}] Stored fallback token for {test_email}")
             else:
                 logger.info(f"[{func_name}] Stdio + token-only mode: Using TEST_USER_EMAIL (no GOOGLE_ACCESS_TOKEN): {test_email}")
-            
+
             return test_email
-        
+
         raise Exception(
             f"OAuth 2.1 mode requires an authenticated user for {func_name}, but none was found."
         )
@@ -860,7 +938,3 @@ def require_multiple_services(service_configs: List[Dict[str, Any]]):
         return wrapper
 
     return decorator
-
-
-
-
